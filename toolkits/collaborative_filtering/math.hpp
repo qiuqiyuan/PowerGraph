@@ -665,8 +665,6 @@ class DistDouble{
       return val;
     }
     void debug_print(std::string name){ return debug_print(name.c_str()); }
-
-
 };
 
 DistDouble DistVec::operator*(const DistVec & vec){
@@ -677,7 +675,7 @@ DistDouble DistVec::operator*(const DistVec & vec){
   assert(mi.y_offset >=0 && mi.b_offset >= 0);
 
   double val = 0;
-  for (int i=start; i< end; i++){  
+  for (int i=start; i< end; i++){
     assert(false);//not yet
     //TODO const vertex_data * data = &pgraph->vertex_data(i);
     //TODO double * pv = (double*)&data->pvec[0];
