@@ -34,7 +34,8 @@ class setDistance{
         return dists;
     }
 
-    apply(, , allneighbors){
+    apply(icontext_type& context, vertex_type& vertex, 
+            const gather_type &allneighbors){
         size_t allneighbors.dists.size();
         for all in-edges:
             dists.insert(cnt_dist);
