@@ -5,6 +5,7 @@
 #include <utility> //for pair
 #include <iostream>
 #include <string>
+#include <assert.h>
 
 using std::vector;
 using std::pair;
@@ -15,7 +16,14 @@ using std::endl;
 using namespace graphlab;
 
 
-typedef graphlab::vertex_id_type color_type;
+typedef double color_type;
+
+typedef struct : public graphlab::IS_POD_TYPE 
+{
+    vector<double> cord;
+    double mass;
+} vertex_data_type;
+
 
 struct set_union_gather{
     vector<color_type> colors;
@@ -40,37 +48,45 @@ struct set_union_gather{
 };
 
 typedef graphlab::empty edge_data_type;
-typedef graphlab::distributed_graph<color_type, edge_data_type> graph_type;
+typedef graphlab::distributed_graph<vertex_data_type, edge_data_type> graph_type;
 
 class setDistance: public graphlab::ivertex_program<graph_type, 
     set_union_gather>, 
     public graphlab::IS_POD_TYPE{
+        double _getDist(const vector<double> &a, const vector<double>&b) const{
+            assert(a.size() == b.size());
+            double res = 0.0;
+            for(size_t i=0;i<a.size();i++){
+                res += pow(a[i] - b[i], 2);
+            }
+            return res;
+        }
         public:
 
-            edge_dir_type gather_edges(icontext_type &context, 
-                    vertex_type vertex) const{
-                return graphlab::IN_EDGES;
-            }
+        edge_dir_type gather_edges(icontext_type &context, 
+                vertex_type vertex) const{
+            return graphlab::OUT_EDGES;
+        }
 
-            double getDist(vertex_data_type &a, vertex_data_type &b ){
-                return 0;
-            }
 
-            //this happens for each edge 
-            //probably in order then ?
-            gather_type gather(icontext_type &context, 
-                    vertex_type &vertex,
-                    edge_type &edge){
-                set_union_gather gather;
-                double dist = getDist(edge.source().data(), edge.target().data());
-                gather.colors.push_back(dist);
-                return gather;
-            }
+        double getDist(vertex_data_type &a, vertex_data_type &b ){
+            return _getDist(a.cord, b.cord);
+        }
 
-            void apply(icontext_type &context, vertex_type &vertex, 
-                    const gather_type &neighbor){
-            
-            }
+        //this happens for each edge 
+        gather_type gather(icontext_type &context, 
+                vertex_type &vertex,
+                edge_type &edge){
+            set_union_gather gather;
+            double dist = getDist(edge.source().data(), edge.target().data());
+            gather.colors.push_back(dist);
+            return gather;
+        }
+
+        void apply(icontext_type &context, vertex_type &vertex, 
+                const gather_type &neighbor){
+
+        }
     };
 
 
