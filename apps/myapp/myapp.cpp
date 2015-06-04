@@ -13,10 +13,10 @@ using std::string;
 using std::cout;
 using std::cin;
 using std::endl;
+using std::make_pair;
 using namespace graphlab;
 
 
-typedef double color_type;
 
 typedef struct : public graphlab::IS_POD_TYPE 
 {
@@ -26,24 +26,25 @@ typedef struct : public graphlab::IS_POD_TYPE
 
 
 struct set_union_gather{
-    vector<color_type> colors;
+    vector<double> dist;
+    vector<vertex_id_type> vid;
 
     set_union_gather& operator+=(const set_union_gather& other){
-        for(graphlab::vertex_id_type othervid = 0; 
-                othervid < other.colors.size(); othervid++){
-            colors.push_back(othervid);
+        for(size_t i=0; i< other.dist.size(); i++){
+            dist.push_back(other.dist[i]);
+            vid.push_back(other.vid[i]);
         }
         return *this;
     }
 
     //serialize to disk 
     void save(graphlab::oarchive& oarc) const{
-        oarc << colors; 
+        oarc << dist << vid; 
     }
 
     //unserilize from disk to RAM
     void load(graphlab::iarchive& iarc) {
-        iarc >> colors;
+        iarc >> dist >> vid;
     }
 };
 
@@ -79,7 +80,8 @@ class setDistance: public graphlab::ivertex_program<graph_type,
                 edge_type &edge){
             set_union_gather gather;
             double dist = getDist(edge.source().data(), edge.target().data());
-            gather.colors.push_back(dist);
+            gather.dist.push_back(dist);
+            gather.vid.push_back(edge.target().id());
             return gather;
         }
 
