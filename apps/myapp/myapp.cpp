@@ -59,7 +59,7 @@ class setDistance: public graphlab::ivertex_program<graph_type,
             for(size_t i=0;i<a.size();i++){
                 res += pow(a[i] - b[i], 2);
             }
-            return res;
+            return sqrt(res);
         }
         public:
 
