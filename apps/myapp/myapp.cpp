@@ -52,16 +52,18 @@ class setDistance: public graphlab::ivertex_program<graph_type,
                 return graphlab::IN_EDGES;
             }
 
+            double getDist(vertex_data_type &a, vertex_data_type &b ){
+                return 0;
+            }
+
             //this happens for each edge 
             //probably in order then ?
             gather_type gather(icontext_type &context, 
                     vertex_type &vertex,
                     edge_type &edge){
                 set_union_gather gather;
-                //cout << edge.source().id()   <<endl;
-                //cout << edge.source().data() <<endl;
-                //cout << edge.target().id()   <<endl; 
-                //cout << edge.target().data() <<endl;
+                double dist = getDist(edge.source().data(), edge.target().data());
+                gather.colors.push_back(dist);
                 return gather;
             }
 
