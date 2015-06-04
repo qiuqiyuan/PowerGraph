@@ -54,6 +54,7 @@ typedef graphlab::distributed_graph<vertex_data_type, edge_data_type> graph_type
 class setDistance: public graphlab::ivertex_program<graph_type, 
     set_union_gather>, 
     public graphlab::IS_POD_TYPE{
+
         double _getDist(const vector<double> &a, const vector<double>&b) const{
             assert(a.size() == b.size());
             double res = 0.0;
@@ -62,16 +63,15 @@ class setDistance: public graphlab::ivertex_program<graph_type,
             }
             return sqrt(res);
         }
-        public:
-
-        edge_dir_type gather_edges(icontext_type &context, 
-                vertex_type vertex) const{
-            return graphlab::OUT_EDGES;
-        }
-
 
         double getDist(vertex_data_type &a, vertex_data_type &b ){
             return _getDist(a.cord, b.cord);
+        }
+
+        public:
+        edge_dir_type gather_edges(icontext_type &context, 
+                vertex_type vertex) const{
+            return graphlab::OUT_EDGES;
         }
 
         //this happens for each edge 
@@ -87,7 +87,8 @@ class setDistance: public graphlab::ivertex_program<graph_type,
 
         void apply(icontext_type &context, vertex_type &vertex, 
                 const gather_type &neighbor){
-
+            size_t ndist = neighbor.dist.size();
+            size_t nvid = neighbor.vid.size();
         }
     };
 
