@@ -90,6 +90,11 @@ class setDistance: public graphlab::ivertex_program<graph_type,
             size_t ndist = neighbor.dist.size();
             size_t nvid = neighbor.vid.size();
         }
+
+        void scatter(icontext_type& context,
+                const vertex_type& vertex,
+                edge_type& edge) const {
+        }
     };
 
 
@@ -106,12 +111,12 @@ int main(int argc, char** argv)
     //have to have a dc for some graph
     graph_type graph(dc);
     //graphlab::omni_engine<setDistance>engineSetDistance(dc, graph, "sync", clopts); 
-    graphlab::async_consistent_engine<setDistance>engineSetDistance(dc, graph, clopts); 
     string path = "/u/qqiu/PowerGraph/release/apps/myapp/input/full";
     string format = "adj";
     graph.load_format(path,format);
     graph.finalize();
 
+    graphlab::async_consistent_engine<setDistance>engineSetDistance(dc, graph, clopts); 
     engineSetDistance.signal_all(); //This marks all points as "active"
     engineSetDistance.start();
 
