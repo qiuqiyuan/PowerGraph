@@ -112,8 +112,8 @@ int main(int argc, char** argv)
     graph.load_format(path,format);
     graph.finalize();
 
-    //engineSetDistance.signal_all(); //This marks all points as "active"
-    //engineSetDistance.start();
+    engineSetDistance.signal_all(); //This marks all points as "active"
+    engineSetDistance.start();
 
 
     graphlab::mpi_tools::finalize();
