@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <assert.h>
+#include <ctime>
 
 using std::vector;
 using std::pair;
@@ -24,10 +25,27 @@ typedef struct : public graphlab::IS_POD_TYPE
     double mass;
 } vertex_data_type;
 
+typedef struct my_pair
+{
+    double dist;
+    vertex_id_type vid;
+    my_pair(double d, vertex_id_type v):dist(d), vid(v){};
+    //serialize to disk 
+    void save(graphlab::oarchive& oarc) const{
+        oarc << dist << vid; 
+    }
+
+    //unserilize from disk to RAM
+    void load(graphlab::iarchive& iarc) {
+        iarc >> dist >> vid;
+    }
+}my_pair;
+
 
 struct set_union_gather{
     vector<double> dist;
     vector<vertex_id_type> vid;
+    vector<my_pair> dist_vid;
 
     set_union_gather& operator+=(const set_union_gather& other){
         for(size_t i=0; i< other.dist.size(); i++){
@@ -39,12 +57,12 @@ struct set_union_gather{
 
     //serialize to disk 
     void save(graphlab::oarchive& oarc) const{
-        oarc << dist << vid; 
+        oarc << dist << vid ; 
     }
 
     //unserilize from disk to RAM
     void load(graphlab::iarchive& iarc) {
-        iarc >> dist >> vid;
+        iarc >> dist >> vid ;
     }
 };
 
@@ -68,6 +86,18 @@ class setDistance: public graphlab::ivertex_program<graph_type,
             return _getDist(a.cord, b.cord);
         }
 
+        size_t randnum(size_t left, size_t right){
+           srand(time(0));
+           return rand()%(right-left+1) + left;
+        }
+
+        //have to sort together
+        void myQuickSort(vector<double> &dist, 
+                vector<vertex_id_type> &vid, int l, int u){
+            //for(int i=0;i<10;i++)
+                //cout << randnum(0, 1000)<<endl;
+        }
+
         public:
         edge_dir_type gather_edges(icontext_type &context, 
                 vertex_type vertex) const{
@@ -80,8 +110,11 @@ class setDistance: public graphlab::ivertex_program<graph_type,
                 edge_type &edge){
             set_union_gather gather;
             double dist = getDist(edge.source().data(), edge.target().data());
+            vertex_id_type vid = edge.target().id();
             gather.dist.push_back(dist);
-            gather.vid.push_back(edge.target().id());
+            gather.vid.push_back(vid);
+
+            gather.dist_vid.push_back(my_pair(dist, vid));
             return gather;
         }
 
@@ -89,6 +122,13 @@ class setDistance: public graphlab::ivertex_program<graph_type,
                 const gather_type &neighbor){
             size_t ndist = neighbor.dist.size();
             size_t nvid = neighbor.vid.size();
+            gather_type cp_neighbor = neighbor;
+            cout<< "DEBUG: dist.size()" << cp_neighbor.dist.size() <<endl;
+            cout<< "DEBUG: vid.size()" << cp_neighbor.vid.size() <<endl;
+            cout<< "DEBUG: dist_vid.size()" << cp_neighbor.dist_vid.size() <<endl;
+            //my quick sort here
+            myQuickSort(cp_neighbor.dist, cp_neighbor.vid, 0, ndist);
+            //resize and done
         }
 
         void scatter(icontext_type& context,
