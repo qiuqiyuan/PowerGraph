@@ -69,25 +69,64 @@ class setDistance: public graphlab::ivertex_program<graph_type,
             return _getDist(a.cord, b.cord);
         }
 
-        size_t randnum(size_t left, size_t right){
-           srand(time(0));
-           return rand()%(right-left+1) + left;
-        }
-
-        //have to sort together
-        void myQuickSort(vector<double> &dist, 
-                vector<vertex_id_type> &vid, int l, int u){
-            for(int i=0;i<10;i++)
-                cout << randnum(0, 1000)<<endl;
-        }
-
         template<typename T>
-        void mySwap(T &x, T &y){
-            T t;
-            t = x;
-            x = y;
-            y = t;
-        }
+            void mySwap(T &x, T &y){
+                T t;
+                t = x;
+                x = y;
+                y = t;
+            }
+
+        template<typename T, typename T2>
+            int partition (vector<T> &arr, vector<T2> &arr2,  int l, int h)
+            {
+                T x = arr[h];
+                int i = (l - 1);
+
+                for (int j = l; j <= h- 1; j++)
+                {
+                    if (arr[j] <= x)
+                    {
+                        i++;
+                        mySwap (arr[i], arr[j]);
+                    }
+                }
+                mySwap (arr[i + 1], arr[h]);
+                return (i + 1);
+            }
+
+        template<typename T, typename T2>
+            void myQuickSort(vector<T> &arr, vector<T2> &arr2, int l, int h)
+            {
+                int stack[ h - l + 1 ];
+                int top = -1;
+                stack[ ++top ] = l;
+                stack[ ++top ] = h;
+                while ( top >= 0 )
+                {
+                    h = stack[ top-- ];
+                    l = stack[ top-- ];
+
+                    // Set pivot element at its correct position in sorted array
+                    int p = partition( arr, arr2, l, h );
+
+                    // If there are elements on left side of pivot, then push left
+                    // side to stack
+                    if ( p-1 > l )
+                    {
+                        stack[ ++top ] = l;
+                        stack[ ++top ] = p - 1;
+                    }
+
+                    // If there are elements on right side of pivot, then push right
+                    // side to stack
+                    if ( p+1 < h )
+                    {
+                        stack[ ++top ] = p + 1;
+                        stack[ ++top ] = h;
+                    }
+                }
+            }
 
         public:
         edge_dir_type gather_edges(icontext_type &context, 
@@ -110,9 +149,10 @@ class setDistance: public graphlab::ivertex_program<graph_type,
                 const gather_type &neighbor){
             size_t ndist = neighbor.dist.size();
             size_t nvid = neighbor.vid.size();
+            assert(ndist == nvid);
             gather_type cp_neighbor = neighbor;
             //my quick sort here
-            myQuickSort(cp_neighbor.dist, cp_neighbor.vid, 0, ndist);
+            myQuickSort(cp_neighbor.dist,cp_neighbor.vid,  0, ndist - 1);
             //resize and done
         }
 
