@@ -83,15 +83,15 @@ class setDistance: public graphlab::ivertex_program<graph_type,
                 T x = arr[h];
                 int i = (l - 1);
 
-                for (int j = l; j <= h- 1; j++)
-                {
-                    if (arr[j] <= x)
-                    {
+                for (int j = l; j <= h- 1; j++) {
+                    if (arr[j] <= x) {
                         i++;
                         mySwap (arr[i], arr[j]);
+                        mySwap (arr2[i], arr2[j]);
                     }
                 }
                 mySwap (arr[i + 1], arr[h]);
+                mySwap (arr2[i + 1], arr2[h]);
                 return (i + 1);
             }
 
@@ -102,8 +102,7 @@ class setDistance: public graphlab::ivertex_program<graph_type,
                 int top = -1;
                 stack[ ++top ] = l;
                 stack[ ++top ] = h;
-                while ( top >= 0 )
-                {
+                while ( top >= 0 ) {
                     h = stack[ top-- ];
                     l = stack[ top-- ];
 
@@ -112,16 +111,14 @@ class setDistance: public graphlab::ivertex_program<graph_type,
 
                     // If there are elements on left side of pivot, then push left
                     // side to stack
-                    if ( p-1 > l )
-                    {
+                    if ( p-1 > l ) {
                         stack[ ++top ] = l;
                         stack[ ++top ] = p - 1;
                     }
 
                     // If there are elements on right side of pivot, then push right
                     // side to stack
-                    if ( p+1 < h )
-                    {
+                    if ( p+1 < h ) {
                         stack[ ++top ] = p + 1;
                         stack[ ++top ] = h;
                     }
@@ -152,7 +149,7 @@ class setDistance: public graphlab::ivertex_program<graph_type,
             assert(ndist == nvid);
             gather_type cp_neighbor = neighbor;
             //my quick sort here
-            myQuickSort(cp_neighbor.dist,cp_neighbor.vid,  0, ndist - 1);
+            myQuickSort(cp_neighbor.dist, cp_neighbor.vid, 0, ndist - 1);
             //resize and done
         }
 
