@@ -69,6 +69,14 @@ class setDistance: public graphlab::ivertex_program<graph_type,
             return _getDist(a.cord, b.cord);
         }
 
+        template <typename T>
+            void printArr( const vector<T> &arr, const string & msg ) const {
+                cout<< msg <<endl;
+                for (int i = 0; i < arr.size(); ++i )
+                    cout << arr[i] << " ";
+                cout << endl;
+            }
+
         template<typename T>
             void mySwap(T &x, T &y){
                 T t;
@@ -148,9 +156,10 @@ class setDistance: public graphlab::ivertex_program<graph_type,
             size_t nvid = neighbor.vid.size();
             assert(ndist == nvid);
             gather_type cp_neighbor = neighbor;
-            //my quick sort here
+            printArr(cp_neighbor.dist, "before QS dist");
+            printArr(cp_neighbor.vid, "before QS vid");
             myQuickSort(cp_neighbor.dist, cp_neighbor.vid, 0, ndist - 1);
-            //resize and done
+            //take the first k and done here 
         }
 
         void scatter(icontext_type& context,
