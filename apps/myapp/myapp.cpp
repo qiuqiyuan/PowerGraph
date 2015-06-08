@@ -18,7 +18,8 @@ using std::stringstream;
 using namespace graphlab;
 
 //KNN dimension
-static const size_t KNN_D = 3;
+static size_t KNN_D = 0;
+static size_t NUM_S = 0;
 
 typedef struct : public graphlab::IS_POD_TYPE 
 {
@@ -142,7 +143,8 @@ class setDistance: public graphlab::ivertex_program<graph_type,
         public:
         edge_dir_type gather_edges(icontext_type &context, 
                 vertex_type vertex) const{
-            return graphlab::OUT_EDGES;
+            //Needs to be ALL_EDGES to avoid segmentation fault
+            return graphlab::ALL_EDGES;
         }
 
         //this happens for each edge 
@@ -164,8 +166,8 @@ class setDistance: public graphlab::ivertex_program<graph_type,
             gather_type cp_neighbor = neighbor;
             printArr(cp_neighbor.dist, "before QS dist");
             printArr(cp_neighbor.vid, "before QS vid");
-            cout << "DEBUG: dist.size() " << cp_neighbor.dist.size() <<endl;
-            cout << "DEBUG: vid.size() " << cp_neighbor.vid.size() <<endl;
+            //cout << "DEBUG: dist.size() " << cp_neighbor.dist.size() <<endl;
+            //cout << "DEBUG: vid.size() " << cp_neighbor.vid.size() <<endl;
             myQuickSort(cp_neighbor.dist, cp_neighbor.vid, 0, ndist - 1);
             //take the first k and done here 
         }
@@ -176,7 +178,7 @@ class setDistance: public graphlab::ivertex_program<graph_type,
         }
     };
 
-inline bool graph_loader_s(graph_type& graph,
+inline bool graph_loader(graph_type& graph,
         const std::string& filename,
         const std::string& line) {
     stringstream strm(line);
@@ -198,34 +200,32 @@ inline bool graph_loader_s(graph_type& graph,
 
     data.isS = true;
 
+    if(vid > NUM_S){
+        data.isS = false;
+    }
     graph.add_vertex(vid, data);
+
+    if(vid > NUM_S)
+        for(size_t i=1; i<=NUM_S ; i++){
+            graph.add_edge(vid, i);
+        }
+
     return true; // successful load
 } // end of graph_loader
-
-//inline bool graph_loader_r(graph_type& graph,
-//        const std::string& filename,
-//        const std::string& line) {
-//    stringstream strm(line);
-//    size_t n = graph.num_vertice();
-//
-//    graph.add_edge(source_id, target_id, edge_data(obs, role));
-//    return true; // successful load
-//} // end of graph_loader
 
 
 int main(int argc, char** argv) 
 {
     graphlab::mpi_tools::init(argc, argv);
     graphlab::distributed_control dc;
-    string input_s, input_r, output_dir;
-    int knn_d;
+    string input;
 
     graphlab::command_line_options clopts("KNN algorithm");
-    clopts.attach_option("input_s", input_s, "s point set");
-    clopts.attach_option("input_r", input_r, "r point set");
-    clopts.attach_option("dimension", knn_d, "dimension of space");
+    clopts.attach_option("input", input, "input point sets inclues S and R");
+    clopts.attach_option("num_s", NUM_S, "number of points in S set");
+    clopts.attach_option("knn_d", KNN_D, "knn dimension");
 
-    if(!clopts.parse(argc, argv) || input_s == "" || input_r == ""){
+    if(!clopts.parse(argc, argv) || input == ""){
         cout<< "Error in parsing command line arguments." <<endl;
         clopts.print_description();
         return EXIT_FAILURE;
@@ -235,15 +235,14 @@ int main(int argc, char** argv)
     graphlab::timer timer;
 
     graph_type graph(dc, clopts);
-    //string path = "/u/qqiu/PowerGraph/release/apps/myapp/input/full";
-    //string format = "adj";
-    graph.load(input_s, graph_loader_s);
+    graph.load(input, graph_loader);
     dc.cout() << "Loading s points. Finished in "
         << timer.current_time() << endl;
 
-   // graph.load(input_r, graph_loader_r);
-   // dc.cout() << "Loading r points. Finished in "
-   //     << timer.current_time() << endl;
+    dc.cout() << "DEBUG: size of graph is " <<graph.num_vertices() <<endl;
+
+    //add_r_set(graph, input_r);
+
     dc.cout() << "Finalizing graph. " << endl;
     timer.start();
     graph.finalize();
