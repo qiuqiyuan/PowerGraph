@@ -21,6 +21,7 @@ using namespace graphlab;
 static size_t KNN_D = 0;
 //Number of S points in input file
 static size_t NUM_S = 0;
+static size_t K = 0;
 
 
 typedef struct : public graphlab::IS_POD_TYPE 
@@ -32,6 +33,8 @@ typedef struct : public graphlab::IS_POD_TYPE
     //S is the set of given points
     //R is the set of query points
     bool isS;
+    vector<double> dist;
+    vector<graphlab::vertex_id_type> vid;
 } vertex_data_type;
 
 
@@ -166,12 +169,23 @@ class setDistance: public graphlab::ivertex_program<graph_type,
             size_t nvid = neighbor.vid.size();
             assert(ndist == nvid);
             gather_type cp_neighbor = neighbor;
-            printArr(cp_neighbor.dist, "before QS dist");
-            printArr(cp_neighbor.vid, "before QS vid");
-            //cout << "DEBUG: dist.size() " << cp_neighbor.dist.size() <<endl;
-            //cout << "DEBUG: vid.size() " << cp_neighbor.vid.size() <<endl;
+            if(vertex.id() == 16){
+                printArr(cp_neighbor.dist, "before QS dist");
+                printArr(cp_neighbor.vid, "before QS vid");
+            }
             myQuickSort(cp_neighbor.dist, cp_neighbor.vid, 0, ndist - 1);
-            //take the first k and done here 
+            for(size_t i=0;i<K;i++){
+                vertex.data().dist.push_back(cp_neighbor.dist[i]);
+                vertex.data().vid.push_back(cp_neighbor.vid[i]);
+            }
+            cout << "DEBUG: vertex.data().dist.size()" << vertex.data().dist.size()<<endl;
+            cout << "DEBUG: vertex.data().vid.size()" << vertex.data().vid.size()<<endl;
+            
+            if(vertex.id() == 16){
+                printArr(cp_neighbor.dist, "after QS dist");
+                printArr(cp_neighbor.vid, "after QS vid");
+            }
+            //vertex.data().res = cp_neighbor.vid.resize(KNN_D);
         }
 
         void scatter(icontext_type& context,
@@ -227,6 +241,7 @@ int main(int argc, char** argv)
 
     graphlab::command_line_options clopts("KNN algorithm");
     clopts.attach_option("input", input, "input point sets inclues S and R");
+    clopts.attach_option("K", K, "the K in knn");
     clopts.attach_option("num_s", NUM_S, "number of points in S set");
     clopts.attach_option("knn_d", KNN_D, "knn dimension");
 
