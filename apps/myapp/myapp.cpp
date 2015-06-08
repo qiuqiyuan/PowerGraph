@@ -14,15 +14,21 @@ using std::string;
 using std::cout;
 using std::cin;
 using std::endl;
-using std::make_pair;
+using std::stringstream;
 using namespace graphlab;
 
-
+//KNN dimension
+static const size_t KNN_D = 3;
 
 typedef struct : public graphlab::IS_POD_TYPE 
 {
+    //cordinate
     vector<double> cord;
     double mass;
+    //if points is in S set of knn-join
+    //S is the set of given points
+    //R is the set of query points
+    bool isS;
 } vertex_data_type;
 
 
@@ -158,6 +164,8 @@ class setDistance: public graphlab::ivertex_program<graph_type,
             gather_type cp_neighbor = neighbor;
             printArr(cp_neighbor.dist, "before QS dist");
             printArr(cp_neighbor.vid, "before QS vid");
+            cout << "DEBUG: dist.size() " << cp_neighbor.dist.size() <<endl;
+            cout << "DEBUG: vid.size() " << cp_neighbor.vid.size() <<endl;
             myQuickSort(cp_neighbor.dist, cp_neighbor.vid, 0, ndist - 1);
             //take the first k and done here 
         }
@@ -168,25 +176,81 @@ class setDistance: public graphlab::ivertex_program<graph_type,
         }
     };
 
+inline bool graph_loader_s(graph_type& graph,
+        const std::string& filename,
+        const std::string& line) {
+    stringstream strm(line);
+
+    graphlab::vertex_id_type vid(-1);
+    
+    strm >> vid;
+
+    vertex_data_type data;
+    for(size_t i=0;i<KNN_D; i++){
+        double x;
+        strm >> x;
+        data.cord.push_back(x);
+    }
+
+    double mass;
+    strm >> mass;
+    data.mass = mass;
+
+    data.isS = true;
+
+    graph.add_vertex(vid, data);
+    return true; // successful load
+} // end of graph_loader
+
+//inline bool graph_loader_r(graph_type& graph,
+//        const std::string& filename,
+//        const std::string& line) {
+//    stringstream strm(line);
+//    size_t n = graph.num_vertice();
+//
+//    graph.add_edge(source_id, target_id, edge_data(obs, role));
+//    return true; // successful load
+//} // end of graph_loader
 
 
-//input file will need to specify number of points.
 int main(int argc, char** argv) 
 {
     graphlab::mpi_tools::init(argc, argv);
     graphlab::distributed_control dc;
+    string input_s, input_r, output_dir;
+    int knn_d;
 
     graphlab::command_line_options clopts("KNN algorithm");
+    clopts.attach_option("input_s", input_s, "s point set");
+    clopts.attach_option("input_r", input_r, "r point set");
+    clopts.attach_option("dimension", knn_d, "dimension of space");
 
+    if(!clopts.parse(argc, argv) || input_s == "" || input_r == ""){
+        cout<< "Error in parsing command line arguments." <<endl;
+        clopts.print_description();
+        return EXIT_FAILURE;
+    }
 
-    //have to have a dc for some graph
-    graph_type graph(dc);
-    //graphlab::omni_engine<setDistance>engineSetDistance(dc, graph, "sync", clopts); 
-    string path = "/u/qqiu/PowerGraph/release/apps/myapp/input/full";
-    string format = "adj";
-    graph.load_format(path,format);
+    dc.cout() << "Loading graph" <<endl;
+    graphlab::timer timer;
+
+    graph_type graph(dc, clopts);
+    //string path = "/u/qqiu/PowerGraph/release/apps/myapp/input/full";
+    //string format = "adj";
+    graph.load(input_s, graph_loader_s);
+    dc.cout() << "Loading s points. Finished in "
+        << timer.current_time() << endl;
+
+   // graph.load(input_r, graph_loader_r);
+   // dc.cout() << "Loading r points. Finished in "
+   //     << timer.current_time() << endl;
+    dc.cout() << "Finalizing graph. " << endl;
+    timer.start();
     graph.finalize();
+    dc.cout() << "Finalizing graph. Finished in "
+        << timer.current_time() <<endl;
 
+    dc.cout() << "Creating engine" << endl;
     graphlab::async_consistent_engine<setDistance>engineSetDistance(dc, graph, clopts); 
     engineSetDistance.signal_all(); //This marks all points as "active"
     engineSetDistance.start();
