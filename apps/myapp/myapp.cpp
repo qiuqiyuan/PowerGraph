@@ -169,22 +169,25 @@ class setDistance: public graphlab::ivertex_program<graph_type,
             size_t nvid = neighbor.vid.size();
             assert(ndist == nvid);
             gather_type cp_neighbor = neighbor;
-            if(vertex.id() == 16){
-                printArr(cp_neighbor.dist, "before QS dist");
-                printArr(cp_neighbor.vid, "before QS vid");
-            }
+//            if(vertex.id() == 16){
+//                printArr(cp_neighbor.dist, "before QS dist");
+//                printArr(cp_neighbor.vid, "before QS vid");
+//            }
             myQuickSort(cp_neighbor.dist, cp_neighbor.vid, 0, ndist - 1);
+            cout << "DEBUG: KNN result" <<endl;
             for(size_t i=0;i<K;i++){
                 vertex.data().dist.push_back(cp_neighbor.dist[i]);
                 vertex.data().vid.push_back(cp_neighbor.vid[i]);
+                cout << vertex.data().dist[i] <<endl;
+                cout << vertex.data().vid[i] <<endl;
             }
-            cout << "DEBUG: vertex.data().dist.size()" << vertex.data().dist.size()<<endl;
-            cout << "DEBUG: vertex.data().vid.size()" << vertex.data().vid.size()<<endl;
-            
-            if(vertex.id() == 16){
-                printArr(cp_neighbor.dist, "after QS dist");
-                printArr(cp_neighbor.vid, "after QS vid");
-            }
+//            cout << "DEBUG: vertex.data().dist.size()" << vertex.data().dist.size()<<endl;
+//            cout << "DEBUG: vertex.data().vid.size()" << vertex.data().vid.size()<<endl;
+//            
+//            if(vertex.id() == 16){
+//                printArr(cp_neighbor.dist, "after QS dist");
+//                printArr(cp_neighbor.vid, "after QS vid");
+//            }
             //vertex.data().res = cp_neighbor.vid.resize(KNN_D);
         }
 
@@ -258,8 +261,6 @@ int main(int argc, char** argv)
     graph.load(input, graph_loader);
     dc.cout() << "Loading s points. Finished in "
         << timer.current_time() << endl;
-
-    dc.cout() << "DEBUG: size of graph is " <<graph.num_vertices() <<endl;
 
 
     dc.cout() << "Finalizing graph. " << endl;
