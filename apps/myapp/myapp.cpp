@@ -19,7 +19,9 @@ using namespace graphlab;
 
 //KNN dimension
 static size_t KNN_D = 0;
+//Number of S points in input file
 static size_t NUM_S = 0;
+
 
 typedef struct : public graphlab::IS_POD_TYPE 
 {
@@ -144,7 +146,7 @@ class setDistance: public graphlab::ivertex_program<graph_type,
         edge_dir_type gather_edges(icontext_type &context, 
                 vertex_type vertex) const{
             //Needs to be ALL_EDGES to avoid segmentation fault
-            return graphlab::ALL_EDGES;
+            return graphlab::OUT_EDGES;
         }
 
         //this happens for each edge 
@@ -213,6 +215,9 @@ inline bool graph_loader(graph_type& graph,
     return true; // successful load
 } // end of graph_loader
 
+bool selectVertices(const graph_type::vertex_type &vertex){
+    return (vertex.id() > NUM_S);
+}
 
 int main(int argc, char** argv) 
 {
@@ -241,7 +246,6 @@ int main(int argc, char** argv)
 
     dc.cout() << "DEBUG: size of graph is " <<graph.num_vertices() <<endl;
 
-    //add_r_set(graph, input_r);
 
     dc.cout() << "Finalizing graph. " << endl;
     timer.start();
@@ -251,7 +255,10 @@ int main(int argc, char** argv)
 
     dc.cout() << "Creating engine" << endl;
     graphlab::async_consistent_engine<setDistance>engineSetDistance(dc, graph, clopts); 
-    engineSetDistance.signal_all(); //This marks all points as "active"
+
+    //R set is the start set
+    graphlab::vertex_set r_set = graph.select(selectVertices);
+    engineSetDistance.signal_vset(r_set); 
     engineSetDistance.start();
 
 
