@@ -13,6 +13,7 @@ using std::pair;
 using std::string;
 using std::cout;
 using std::cin;
+using std::min;
 using std::endl;
 using std::stringstream;
 using namespace graphlab;
@@ -171,7 +172,7 @@ class setDistance: public graphlab::ivertex_program<graph_type,
             gather_type cp_neighbor = neighbor;
             myQuickSort(cp_neighbor.dist, cp_neighbor.vid, 0, ndist - 1);
             cout << "DEBUG: KNN result" <<endl;
-            for(size_t i=0;i<K;i++){
+            for(size_t i=0;i<min(K, nvid);i++){
                 vertex.data().dist.push_back(cp_neighbor.dist[i]);
                 vertex.data().vid.push_back(cp_neighbor.vid[i]);
                 cout << vertex.data().dist[i] <<endl;
