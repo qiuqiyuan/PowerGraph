@@ -581,7 +581,7 @@ set(CMAKE_C_FLAGS_DEBUG
   "-O0 -Wno-attributes -march=${MARCH} -Winit-self ${PROFILING_FLAGS} ${COMPILER_FLAGS}"
   CACHE STRING "compiler options" FORCE)
 set(CMAKE_CXX_FLAGS_DEBUG
-  "-O0 ${WNO_LOCAL_TYPEDEFS} -Wno-attributes -march=${MARCH} -Winit-self ${PROFILING_FLAGS} ${COMPILER_FLAGS}"
+  "-O0 ${WNO_LOCAL_TYPEDEFS} -fsanitize=address -Wno-attributes -march=${MARCH} -Winit-self ${PROFILING_FLAGS} ${COMPILER_FLAGS}"
   CACHE STRING "compiler options" FORCE)
 
 set(CMAKE_C_FLAGS_RELEASE
