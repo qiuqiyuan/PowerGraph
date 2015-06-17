@@ -10,6 +10,7 @@
 
 using std::vector;
 using std::pair;
+using std::sort;
 using std::string;
 using std::cout;
 using std::cin;
@@ -46,11 +47,12 @@ typedef struct{
 
 struct set_union_gather{
     vector< pair<double, vertex_id_type> > dist_vid;
-
     set_union_gather& operator+=(const set_union_gather& other){
         for(size_t i=0; i< other.dist_vid.size(); i++){
             dist_vid.push_back(other.dist_vid[i]);
         }
+        sort(dist_vid.begin(), dist_vid.end());
+        dist_vid.resize(K);
         return *this;
     }
 
@@ -89,7 +91,8 @@ class setDistance: public graphlab::ivertex_program<graph_type,
             void printArr( const vector<T> &arr, const string & msg ) const {
                 cout<< msg <<endl;
                 for (int i = 0; i < arr.size(); ++i )
-                    cout << arr[i].first << " " <<arr[i].second << " ";
+                    cout << "dist: " << arr[i].first << " vid: " <<
+                        arr[i].second << " ";
                 cout << endl;
             }
 
@@ -113,11 +116,8 @@ class setDistance: public graphlab::ivertex_program<graph_type,
         void apply(icontext_type &context, vertex_type &vertex, 
                 const gather_type &neighbor){
             //save result into graph
-            vector<pair<double,vertex_id_type> > c = neighbor.dist_vid;
-            sort(c.begin(), c.end());
-            c.resize(K);
-            if(vertex.id() == 16)
-                printArr(c, "knn");
+            if(vertex.id() == NUM_S + 1)
+                printArr(neighbor.dist_vid, "knn");
         }
 
         void scatter(icontext_type& context,
