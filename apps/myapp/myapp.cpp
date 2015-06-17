@@ -15,6 +15,7 @@ using std::cout;
 using std::cin;
 using std::min;
 using std::endl;
+using std::make_pair;
 using std::stringstream;
 using namespace graphlab;
 
@@ -25,40 +26,42 @@ static size_t NUM_S = 0;
 static size_t K = 0;
 
 
-typedef struct : public graphlab::IS_POD_TYPE 
-{
-    //cordinate
+typedef struct{ 
     vector<double> cord;
     double mass;
-    //if points is in S set of knn-join
-    //S is the set of given points
-    //R is the set of query points
     bool isS;
-    vector<double> dist;
-    vector<graphlab::vertex_id_type> vid;
+    vector< pair<double, vertex_id_type> > knn;
+
+    //serialize to disk 
+    void save(graphlab::oarchive& oarc) const{
+        oarc << cord << mass << isS << knn; 
+    }
+
+    //unserilize from disk to RAM
+    void load(graphlab::iarchive& iarc) {
+        iarc >> cord >> mass >> isS >> knn ; 
+    }
 } vertex_data_type;
 
 
 struct set_union_gather{
-    vector<double> dist;
-    vector<vertex_id_type> vid;
+    vector< pair<double, vertex_id_type> > dist_vid;
 
     set_union_gather& operator+=(const set_union_gather& other){
-        for(size_t i=0; i< other.dist.size(); i++){
-            dist.push_back(other.dist[i]);
-            vid.push_back(other.vid[i]);
+        for(size_t i=0; i< other.dist_vid.size(); i++){
+            dist_vid.push_back(other.dist_vid[i]);
         }
         return *this;
     }
 
     //serialize to disk 
     void save(graphlab::oarchive& oarc) const{
-        oarc << dist << vid; 
+        oarc << dist_vid; 
     }
 
     //unserilize from disk to RAM
     void load(graphlab::iarchive& iarc) {
-        iarc >> dist >> vid;
+        iarc >> dist_vid;
     }
 };
 
@@ -86,70 +89,13 @@ class setDistance: public graphlab::ivertex_program<graph_type,
             void printArr( const vector<T> &arr, const string & msg ) const {
                 cout<< msg <<endl;
                 for (int i = 0; i < arr.size(); ++i )
-                    cout << arr[i] << " ";
+                    cout << arr[i].first << " " <<arr[i].second << " ";
                 cout << endl;
-            }
-
-        template<typename T>
-            void mySwap(T &x, T &y){
-                T t;
-                t = x;
-                x = y;
-                y = t;
-            }
-
-        template<typename T, typename T2>
-            int partition (vector<T> &arr, vector<T2> &arr2,  int l, int h)
-            {
-                T x = arr[h];
-                int i = (l - 1);
-
-                for (int j = l; j <= h- 1; j++) {
-                    if (arr[j] <= x) {
-                        i++;
-                        mySwap (arr[i], arr[j]);
-                        mySwap (arr2[i], arr2[j]);
-                    }
-                }
-                mySwap (arr[i + 1], arr[h]);
-                mySwap (arr2[i + 1], arr2[h]);
-                return (i + 1);
-            }
-
-        template<typename T, typename T2>
-            void myQuickSort(vector<T> &arr, vector<T2> &arr2, int l, int h)
-            {
-                int stack[ h - l + 1 ];
-                int top = -1;
-                stack[ ++top ] = l;
-                stack[ ++top ] = h;
-                while ( top >= 0 ) {
-                    h = stack[ top-- ];
-                    l = stack[ top-- ];
-
-                    // Set pivot element at its correct position in sorted array
-                    int p = partition( arr, arr2, l, h );
-
-                    // If there are elements on left side of pivot, then push left
-                    // side to stack
-                    if ( p-1 > l ) {
-                        stack[ ++top ] = l;
-                        stack[ ++top ] = p - 1;
-                    }
-
-                    // If there are elements on right side of pivot, then push right
-                    // side to stack
-                    if ( p+1 < h ) {
-                        stack[ ++top ] = p + 1;
-                        stack[ ++top ] = h;
-                    }
-                }
             }
 
         public:
         edge_dir_type gather_edges(icontext_type &context, 
                 vertex_type vertex) const{
-            //Needs to be ALL_EDGES to avoid segmentation fault
             return graphlab::OUT_EDGES;
         }
 
@@ -159,25 +105,19 @@ class setDistance: public graphlab::ivertex_program<graph_type,
                 edge_type &edge){
             set_union_gather gather;
             double dist = getDist(edge.source().data(), edge.target().data());
-            gather.dist.push_back(dist);
-            gather.vid.push_back(edge.target().id());
+            vertex_id_type vid = edge.target().id();
+            gather.dist_vid.push_back(make_pair(dist, vid));
             return gather;
         }
 
         void apply(icontext_type &context, vertex_type &vertex, 
                 const gather_type &neighbor){
-            size_t ndist = neighbor.dist.size();
-            size_t nvid = neighbor.vid.size();
-            assert(ndist == nvid);
-            gather_type cp_neighbor = neighbor;
-            myQuickSort(cp_neighbor.dist, cp_neighbor.vid, 0, ndist - 1);
-            cout << "DEBUG: KNN result" <<endl;
-            for(size_t i=0;i<min(K, nvid);i++){
-                vertex.data().dist.push_back(cp_neighbor.dist[i]);
-                vertex.data().vid.push_back(cp_neighbor.vid[i]);
-                cout << vertex.data().dist[i] <<endl;
-                cout << vertex.data().vid[i] <<endl;
-            }
+            //save result into graph
+            vector<pair<double,vertex_id_type> > c = neighbor.dist_vid;
+            sort(c.begin(), c.end());
+            c.resize(K);
+            if(vertex.id() == 16)
+                printArr(c, "knn");
         }
 
         void scatter(icontext_type& context,
@@ -192,7 +132,7 @@ inline bool graph_loader(graph_type& graph,
     stringstream strm(line);
 
     graphlab::vertex_id_type vid(-1);
-    
+
     strm >> vid;
 
     vertex_data_type data;
