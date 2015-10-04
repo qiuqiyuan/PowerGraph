@@ -97,7 +97,7 @@ class setDistance: public graphlab::ivertex_program<graph_type, set_union_gather
         template <typename T>
             void printArr( const vector<T> &arr, const string & msg ) const {
                 cout<< msg <<endl;
-                for (int i = 0; i < arr.size(); ++i )
+                for (size_t i = 0; i < arr.size(); ++i )
                     cout << "dist: " << arr[i].first << " vid: " <<
                         arr[i].second << " ";
                 cout << endl;
