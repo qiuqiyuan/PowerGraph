@@ -27,10 +27,15 @@ static size_t NUM_S = 0;
 static size_t K = 0;
 
 
+// data structure on vertex
 typedef struct{ 
     vector<double> cord;
     double mass;
     bool isS;
+    //knn --> result after computation, initially empty 
+    //pair <double, vertex_id_type>
+    //double --> distance
+    //vertex_id_type --> the v's id
     vector< pair<double, vertex_id_type> > knn;
 
     //serialize to disk 
@@ -45,8 +50,11 @@ typedef struct{
 } vertex_data_type;
 
 
+// used as ?? 
 struct set_union_gather{
     vector< pair<double, vertex_id_type> > dist_vid;
+
+    //how to reduce two union_gather together. 
     set_union_gather& operator+=(const set_union_gather& other){
         for(size_t i=0; i< other.dist_vid.size(); i++){
             dist_vid.push_back(other.dist_vid[i]);
@@ -70,8 +78,7 @@ struct set_union_gather{
 typedef graphlab::empty edge_data_type;
 typedef graphlab::distributed_graph<vertex_data_type, edge_data_type> graph_type;
 
-class setDistance: public graphlab::ivertex_program<graph_type, 
-    set_union_gather>, 
+class setDistance: public graphlab::ivertex_program<graph_type, set_union_gather>, 
     public graphlab::IS_POD_TYPE{
 
         double _getDist(const vector<double> &a, const vector<double>&b) const{
@@ -115,7 +122,7 @@ class setDistance: public graphlab::ivertex_program<graph_type,
 
         void apply(icontext_type &context, vertex_type &vertex, 
                 const gather_type &neighbor){
-            //save result into graph
+            //should save result into graph
             if(vertex.id() == NUM_S + 1)
                 printArr(neighbor.dist_vid, "knn");
         }
