@@ -177,13 +177,16 @@ a C++ project without having to write complicated Makefiles.
    
 2. Create a CMakeLists.txt in apps/my_app containing the following lines:
 
+    ```
     project(GraphLab) 
     add_graphlab_executable(my_app [List of cpp files space separated]) 
-
+    ```
 3. Substituting the right values into the square brackets. For instance:
 
+    ```
     project(GraphLab) 
     add_graphlab_executable(my_app my_app.cpp) 
+    ```
 
 4. Running "make" in the apps/ directory of any of the build directories 
 should compile your app. If your app does not show up, try running
