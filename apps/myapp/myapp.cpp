@@ -7,6 +7,7 @@
 #include <string>
 #include <assert.h>
 #include <ctime>
+#include <sys/time.h>
 
 using std::vector;
 using std::pair;
@@ -172,8 +173,16 @@ bool selectVertices(const graph_type::vertex_type &vertex){
     return (vertex.id() > NUM_S);
 }
 
+double diffTime(timeval &end, timeval &begin){
+	return ((double)(end.tv_sec - begin.tv_sec)) + ((double)(end.tv_usec - begin.tv_usec))/1.0E6;
+}
+
 int main(int argc, char** argv) 
 {
+
+	timeval time0, time1, time2, time3, time4, time5, time6;
+	gettimeofday(&time0, 0);
+
     graphlab::mpi_tools::init(argc, argv);
     graphlab::distributed_control dc;
     string input;
@@ -190,6 +199,8 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
+	gettimeofday(&time1, 0);
+
     dc.cout() << "Loading graph" <<endl;
     graphlab::timer timer;
 
@@ -198,10 +209,13 @@ int main(int argc, char** argv)
     dc.cout() << "Loading s points. Finished in "
         << timer.current_time() << endl;
 
+	gettimeofday(&time2, 0);
 
     dc.cout() << "Finalizing graph. " << endl;
     timer.start();
     graph.finalize();
+	gettimeofday(&time3, 0);
+
     dc.cout() << "Finalizing graph. Finished in "
         << timer.current_time() <<endl;
 
@@ -211,9 +225,21 @@ int main(int argc, char** argv)
     //Start computation with R set
     graphlab::vertex_set r_set = graph.select(selectVertices);
     engineSetDistance.signal_vset(r_set); 
-    engineSetDistance.start();
 
+	gettimeofday(&time4, 0);
+    engineSetDistance.start();
+	gettimeofday(&time5, 0);
 
     graphlab::mpi_tools::finalize();
+	gettimeofday(&time6, 0);
+
+	dc.cout()<<"\ntime:"<<endl;
+	//dc.cout()<<"before load: "<<diffTime(time1, time0)<<endl;
+	dc.cout()<<"load time: "<<diffTime(time2,time1)<<endl;
+	dc.cout()<<"graph finalize: "<<diffTime(time3,time2)<<endl;
+	dc.cout()<<"before engine start: "<<diffTime(time4,time3)<<endl;
+	dc.cout()<<"                      distance: "<<diffTime(time5,time4)<<endl;
+	//dc.cout()<<"mpi finalize: "<<diffTime(time6,time5)<<endl;
+
     return EXIT_SUCCESS; //from stdlib.h
 }
