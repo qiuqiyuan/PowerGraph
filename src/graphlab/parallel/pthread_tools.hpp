@@ -65,48 +65,48 @@ namespace graphlab {
    * Before you use, see \ref parallel_object_intricacies.
    */
   class spinlock {
-  private:
-    // mutable not actually needed
-    mutable pthread_spinlock_t m_spin;
-  public:
-    /// constructs a spinlock
-    spinlock () {
-      int error = pthread_spin_init(&m_spin, PTHREAD_PROCESS_PRIVATE);
-      ASSERT_TRUE(!error);
-    }
-    
-    /** Copy constructor which does not copy. Do not use!
+    private:
+      // mutable not actually needed
+      mutable pthread_spinlock_t m_spin;
+    public:
+      /// constructs a spinlock
+      spinlock () {
+        int error = pthread_spin_init(&m_spin, PTHREAD_PROCESS_PRIVATE);
+        ASSERT_TRUE(!error);
+      }
+
+      /** Copy constructor which does not copy. Do not use!
         Required for compatibility with some STL implementations (LLVM).
         which use the copy constructor for vector resize, 
         rather than the standard constructor.    */
-    spinlock(const spinlock&) {
-      int error = pthread_spin_init(&m_spin, PTHREAD_PROCESS_PRIVATE);
-      ASSERT_TRUE(!error);
-    }
-    
-    // not copyable
-    void operator=(const spinlock& m) { }
+      spinlock(const spinlock&) {
+        int error = pthread_spin_init(&m_spin, PTHREAD_PROCESS_PRIVATE);
+        ASSERT_TRUE(!error);
+      }
+
+      // not copyable
+      void operator=(const spinlock& m) { }
 
 
-    /// Acquires a lock on the spinlock
-    inline void lock() const { 
-      int error = pthread_spin_lock( &m_spin  );
-      ASSERT_TRUE(!error);
-    }
-    /// Releases a lock on the spinlock
-    inline void unlock() const {
-      int error = pthread_spin_unlock( &m_spin );
-      ASSERT_TRUE(!error);
-    }
-    /// Non-blocking attempt to acquire a lock on the spinlock
-    inline bool try_lock() const {
-      return pthread_spin_trylock( &m_spin ) == 0;
-    }
-    ~spinlock(){
-      int error = pthread_spin_destroy( &m_spin );
-      ASSERT_TRUE(!error);
-    }
-    friend class conditional;
+      /// Acquires a lock on the spinlock
+      inline void lock() const { 
+        int error = pthread_spin_lock( &m_spin  );
+        ASSERT_TRUE(!error);
+      }
+      /// Releases a lock on the spinlock
+      inline void unlock() const {
+        int error = pthread_spin_unlock( &m_spin );
+        ASSERT_TRUE(!error);
+      }
+      /// Non-blocking attempt to acquire a lock on the spinlock
+      inline bool try_lock() const {
+        return pthread_spin_trylock( &m_spin ) == 0;
+      }
+      ~spinlock(){
+        int error = pthread_spin_destroy( &m_spin );
+        ASSERT_TRUE(!error);
+      }
+      friend class conditional;
   }; // End of spinlock
 #define SPINLOCK_SUPPORTED 1
 #else
@@ -115,7 +115,7 @@ namespace graphlab {
 #define SPINLOCK_SUPPORTED 0
 #endif
 
-  
+
   /**
    * \ingroup util
    *If pthread spinlock is not implemented, 
@@ -124,45 +124,46 @@ namespace graphlab {
    * Before you use, see \ref parallel_object_intricacies.
    */
   class simple_spinlock {
-  private:
-    // mutable not actually needed
-    mutable volatile char spinner;
-  public:
-    /// constructs a spinlock
-    simple_spinlock () {
-      spinner = 0;
-    }
-    
-    /** Copy constructor which does not copy. Do not use!
-    Required for compatibility with some STL implementations (LLVM).
-    which use the copy constructor for vector resize, 
-    rather than the standard constructor.    */
-    simple_spinlock(const simple_spinlock&) {
-      spinner = 0;
-    }
-    
-    // not copyable
-    void operator=(const simple_spinlock& m) { }
+    private:
+      // mutable not actually needed
+      mutable volatile char spinner;
+    public:
+      /// constructs a spinlock
+      simple_spinlock () {
+        spinner = 0;
+      }
 
-    
-    /// Acquires a lock on the spinlock
-    inline void lock() const { 
-      while(spinner == 1 || __sync_lock_test_and_set(&spinner, 1));
-    }
-    /// Releases a lock on the spinlock
-    inline void unlock() const {
-      __sync_synchronize();
-      spinner = 0;
-    }
-    /// Non-blocking attempt to acquire a lock on the spinlock
-    inline bool try_lock() const {
-      return (__sync_lock_test_and_set(&spinner, 1) == 0);
-    }
-    ~simple_spinlock(){
-      ASSERT_TRUE(spinner == 0);
-    }
+      /** Copy constructor which does not copy. Do not use!
+        Required for compatibility with some STL implementations (LLVM).
+        which use the copy constructor for vector resize, 
+        rather than the standard constructor.    */
+      simple_spinlock(const simple_spinlock&) {
+        spinner = 0;
+      }
+
+      // not copyable
+      void operator=(const simple_spinlock& m) { }
+
+
+      /// Acquires a lock on the spinlock
+      inline void lock() const { 
+        while(spinner == 1 || __sync_lock_test_and_set(&spinner, 1));
+      }
+      /// Releases a lock on the spinlock
+      inline void unlock() const {
+        __sync_synchronize();
+        spinner = 0;
+      }
+      /// Non-blocking attempt to acquire a lock on the spinlock
+      inline bool try_lock() const {
+        return (__sync_lock_test_and_set(&spinner, 1) == 0);
+      }
+      ~simple_spinlock(){
+        ASSERT_TRUE(spinner == 0);
+      }
   };
-  
+
+
 
   /**
    * \ingroup util
@@ -172,46 +173,46 @@ namespace graphlab {
    * Before you use, see \ref parallel_object_intricacies.
    */
   class padded_simple_spinlock {
-  private:
-    // mutable not actually needed
-    mutable volatile char spinner;
-    // char padding[63];
-  public:
-    /// constructs a spinlock
-    padded_simple_spinlock () {
-      spinner = 0;
-    }
-    
-    /** Copy constructor which does not copy. Do not use!
-    Required for compatibility with some STL implementations (LLVM).
-    which use the copy constructor for vector resize, 
-    rather than the standard constructor.    */
-    padded_simple_spinlock(const padded_simple_spinlock&) {
-      spinner = 0;
-    }
-    
-    // not copyable
-    void operator=(const padded_simple_spinlock& m) { }
+    private:
+      // mutable not actually needed
+      mutable volatile char spinner;
+      // char padding[63];
+    public:
+      /// constructs a spinlock
+      padded_simple_spinlock () {
+        spinner = 0;
+      }
 
-    
-    /// Acquires a lock on the spinlock
-    inline void lock() const { 
-      while(spinner == 1 || __sync_lock_test_and_set(&spinner, 1));
-    }
-    /// Releases a lock on the spinlock
-    inline void unlock() const {
-      __sync_synchronize();
-      spinner = 0;
-    }
-    /// Non-blocking attempt to acquire a lock on the spinlock
-    inline bool try_lock() const {
-      return (__sync_lock_test_and_set(&spinner, 1) == 0);
-    }
-    ~padded_simple_spinlock(){
-      ASSERT_TRUE(spinner == 0);
-    }
+      /** Copy constructor which does not copy. Do not use!
+        Required for compatibility with some STL implementations (LLVM).
+        which use the copy constructor for vector resize, 
+        rather than the standard constructor.    */
+      padded_simple_spinlock(const padded_simple_spinlock&) {
+        spinner = 0;
+      }
+
+      // not copyable
+      void operator=(const padded_simple_spinlock& m) { }
+
+
+      /// Acquires a lock on the spinlock
+      inline void lock() const { 
+        while(spinner == 1 || __sync_lock_test_and_set(&spinner, 1));
+      }
+      /// Releases a lock on the spinlock
+      inline void unlock() const {
+        __sync_synchronize();
+        spinner = 0;
+      }
+      /// Non-blocking attempt to acquire a lock on the spinlock
+      inline bool try_lock() const {
+        return (__sync_lock_test_and_set(&spinner, 1) == 0);
+      }
+      ~padded_simple_spinlock(){
+        ASSERT_TRUE(spinner == 0);
+      }
   };
-  
+
 
 
 
@@ -222,105 +223,105 @@ namespace graphlab {
    * Before you use, see \ref parallel_object_intricacies.
    */
   class conditional {
-  private:
-    mutable pthread_cond_t  m_cond;
+    private:
+      mutable pthread_cond_t  m_cond;
 
-  public:
-    conditional() {
-      int error = pthread_cond_init(&m_cond, NULL);
-      ASSERT_TRUE(!error);
-    }
-    
-    /** Copy constructor which does not copy. Do not use!
+    public:
+      conditional() {
+        int error = pthread_cond_init(&m_cond, NULL);
+        ASSERT_TRUE(!error);
+      }
+
+      /** Copy constructor which does not copy. Do not use!
         Required for compatibility with some STL implementations (LLVM).
         which use the copy constructor for vector resize, 
         rather than the standard constructor.    */
-    conditional(const conditional &) {
-      int error = pthread_cond_init(&m_cond, NULL);
-      ASSERT_TRUE(!error);
-    }
-    
-    // not copyable
-    void operator=(const conditional& m) { }
-
-    
-    /// Waits on condition. The mutex must already be acquired. Caller
-    /// must be careful about spurious wakes.
-    inline void wait(const mutex& mut) const {
-      int error = pthread_cond_wait(&m_cond, &mut.m_mut);
-      ASSERT_TRUE(!error);
-    }
-    /// Like wait() but with a time limit of "sec" seconds
-    inline int timedwait(const mutex& mut, size_t sec) const {
-      struct timespec timeout;
-      struct timeval tv;
-      struct timezone tz;
-      gettimeofday(&tv, &tz);
-      timeout.tv_nsec = tv.tv_usec * 1000;
-      timeout.tv_sec = tv.tv_sec + (time_t)sec;
-      return pthread_cond_timedwait(&m_cond, &mut.m_mut, &timeout);
-    }
-    /// Like wait() but with a time limit of "ms" milliseconds
-    inline int timedwait_ms(const mutex& mut, size_t ms) const {
-      struct timespec timeout;
-      struct timeval tv;
-      gettimeofday(&tv, NULL);
-      // convert ms to s and ns
-      size_t s = ms / 1000;
-      ms = ms % 1000;
-      size_t ns = ms * 1000000;
-      // convert timeval to timespec
-      timeout.tv_nsec = tv.tv_usec * 1000;
-      timeout.tv_sec = tv.tv_sec;
-      
-      // add the time
-      timeout.tv_nsec += (suseconds_t)ns;
-      timeout.tv_sec += (time_t)s;
-      // shift the nsec to sec if overflow
-      if (timeout.tv_nsec > 1000000000) {
-        timeout.tv_sec ++;
-        timeout.tv_nsec -= 1000000000;
+      conditional(const conditional &) {
+        int error = pthread_cond_init(&m_cond, NULL);
+        ASSERT_TRUE(!error);
       }
-      return pthread_cond_timedwait(&m_cond, &mut.m_mut, &timeout);
-    }
-    /// Like wait() but with a time limit of "ns" nanoseconds
-    inline int timedwait_ns(const mutex& mut, size_t ns) const {
-      struct timespec timeout;
-      struct timeval tv;
-      gettimeofday(&tv, NULL);
-      assert(ns > 0);
-      // convert ns to s and ns
-      size_t s = ns / 1000000;
-      ns = ns % 1000000;
 
-      // convert timeval to timespec
-      timeout.tv_nsec = tv.tv_usec * 1000;
-      timeout.tv_sec = tv.tv_sec;
-      
-      // add the time
-      timeout.tv_nsec += (suseconds_t)ns;
-      timeout.tv_sec += (time_t)s;
-      // shift the nsec to sec if overflow
-      if (timeout.tv_nsec > 1000000000) {
-        timeout.tv_sec ++;
-        timeout.tv_nsec -= 1000000000;
+      // not copyable
+      void operator=(const conditional& m) { }
+
+
+      /// Waits on condition. The mutex must already be acquired. Caller
+      /// must be careful about spurious wakes.
+      inline void wait(const mutex& mut) const {
+        int error = pthread_cond_wait(&m_cond, &mut.m_mut);
+        ASSERT_TRUE(!error);
       }
-      return pthread_cond_timedwait(&m_cond, &mut.m_mut, &timeout);
-    }
-    /// Signals one waiting thread to wake up
-    inline void signal() const {
-      int error = pthread_cond_signal(&m_cond);
-      ASSERT_TRUE(!error);
-    }
-    /// Wakes up all waiting threads
-    inline void broadcast() const {
-      int error = pthread_cond_broadcast(&m_cond);
-      ASSERT_TRUE(!error);
-    }
-    ~conditional() {
-      int error = pthread_cond_destroy(&m_cond);
-      ASSERT_TRUE(!error);
-    }
+      /// Like wait() but with a time limit of "sec" seconds
+      inline int timedwait(const mutex& mut, size_t sec) const {
+        struct timespec timeout;
+        struct timeval tv;
+        struct timezone tz;
+        gettimeofday(&tv, &tz);
+        timeout.tv_nsec = tv.tv_usec * 1000;
+        timeout.tv_sec = tv.tv_sec + (time_t)sec;
+        return pthread_cond_timedwait(&m_cond, &mut.m_mut, &timeout);
+      }
+      /// Like wait() but with a time limit of "ms" milliseconds
+      inline int timedwait_ms(const mutex& mut, size_t ms) const {
+        struct timespec timeout;
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        // convert ms to s and ns
+        size_t s = ms / 1000;
+        ms = ms % 1000;
+        size_t ns = ms * 1000000;
+        // convert timeval to timespec
+        timeout.tv_nsec = tv.tv_usec * 1000;
+        timeout.tv_sec = tv.tv_sec;
+
+        // add the time
+        timeout.tv_nsec += (suseconds_t)ns;
+        timeout.tv_sec += (time_t)s;
+        // shift the nsec to sec if overflow
+        if (timeout.tv_nsec > 1000000000) {
+          timeout.tv_sec ++;
+          timeout.tv_nsec -= 1000000000;
+        }
+        return pthread_cond_timedwait(&m_cond, &mut.m_mut, &timeout);
+      }
+      /// Like wait() but with a time limit of "ns" nanoseconds
+      inline int timedwait_ns(const mutex& mut, size_t ns) const {
+        struct timespec timeout;
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        assert(ns > 0);
+        // convert ns to s and ns
+        size_t s = ns / 1000000;
+        ns = ns % 1000000;
+
+        // convert timeval to timespec
+        timeout.tv_nsec = tv.tv_usec * 1000;
+        timeout.tv_sec = tv.tv_sec;
+
+        // add the time
+        timeout.tv_nsec += (suseconds_t)ns;
+        timeout.tv_sec += (time_t)s;
+        // shift the nsec to sec if overflow
+        if (timeout.tv_nsec > 1000000000) {
+          timeout.tv_sec ++;
+          timeout.tv_nsec -= 1000000000;
+        }
+        return pthread_cond_timedwait(&m_cond, &mut.m_mut, &timeout);
+      }
+      /// Signals one waiting thread to wake up
+      inline void signal() const {
+        int error = pthread_cond_signal(&m_cond);
+        ASSERT_TRUE(!error);
+      }
+      /// Wakes up all waiting threads
+      inline void broadcast() const {
+        int error = pthread_cond_broadcast(&m_cond);
+        ASSERT_TRUE(!error);
+      }
+      ~conditional() {
+        int error = pthread_cond_destroy(&m_cond);
+        ASSERT_TRUE(!error);
+      }
   }; // End conditional
 
 
@@ -331,51 +332,51 @@ namespace graphlab {
    * Before you use, see \ref parallel_object_intricacies.
    */
   class semaphore {
-  private:
-    conditional cond;
-    mutex mut;
-    mutable volatile size_t semvalue;
-    mutable volatile size_t waitercount;
+    private:
+      conditional cond;
+      mutex mut;
+      mutable volatile size_t semvalue;
+      mutable volatile size_t waitercount;
 
-  public:
-    semaphore() {
-      semvalue = 0;
-      waitercount = 0;
-    }
-    /** Copy constructor which does not copy. Do not use!
+    public:
+      semaphore() {
+        semvalue = 0;
+        waitercount = 0;
+      }
+      /** Copy constructor which does not copy. Do not use!
         Required for compatibility with some STL implementations (LLVM).
         which use the copy constructor for vector resize, 
         rather than the standard constructor.    */
-    semaphore(const semaphore&) {
-      semvalue = 0;
-      waitercount = 0;
-    }
-    
-    // not copyable
-    void operator=(const semaphore& m) { }
+      semaphore(const semaphore&) {
+        semvalue = 0;
+        waitercount = 0;
+      }
 
-    inline void post() const {
-      mut.lock();
-      if (waitercount > 0) {
-        cond.signal();
+      // not copyable
+      void operator=(const semaphore& m) { }
+
+      inline void post() const {
+        mut.lock();
+        if (waitercount > 0) {
+          cond.signal();
+        }
+        semvalue++;
+        mut.unlock();
       }
-      semvalue++;
-      mut.unlock();
-    }
-    inline void wait() const {
-      mut.lock();
-      waitercount++;
-      while (semvalue == 0) {
-        cond.wait(mut);
+      inline void wait() const {
+        mut.lock();
+        waitercount++;
+        while (semvalue == 0) {
+          cond.wait(mut);
+        }
+        waitercount--;
+        semvalue--;
+        mut.unlock();
       }
-      waitercount--;
-      semvalue--;
-      mut.unlock();
-    }
-    ~semaphore() {
-      ASSERT_TRUE(waitercount == 0);
-      ASSERT_TRUE(semvalue == 0);
-    }
+      ~semaphore() {
+        ASSERT_TRUE(waitercount == 0);
+        ASSERT_TRUE(semvalue == 0);
+      }
   }; // End semaphore
 #else
   /**
@@ -384,42 +385,42 @@ namespace graphlab {
    * Before you use, see \ref parallel_object_intricacies.
    */
   class semaphore {
-  private:
-    mutable sem_t  m_sem;
+    private:
+      mutable sem_t  m_sem;
 
-  public:
-    semaphore() {
-      int error = sem_init(&m_sem, 0,0);
-      ASSERT_TRUE(!error);
-    }
-    
-    /** Copy constructor with does not copy. Do not use!
+    public:
+      semaphore() {
+        int error = sem_init(&m_sem, 0,0);
+        ASSERT_TRUE(!error);
+      }
+
+      /** Copy constructor with does not copy. Do not use!
         Required for compatibility with some STL implementations (LLVM).
         which use the copy constructor for vector resize, 
         rather than the standard constructor.    */
-    semaphore(const semaphore&) {
-      int error = sem_init(&m_sem, 0,0);
-      ASSERT_TRUE(!error);
-    }
-    
-    // not copyable
-    void operator=(const semaphore& m) { }
+      semaphore(const semaphore&) {
+        int error = sem_init(&m_sem, 0,0);
+        ASSERT_TRUE(!error);
+      }
 
-    inline void post() const {
-      int error = sem_post(&m_sem);
-      ASSERT_TRUE(!error);
-    }
-    inline void wait() const {
-      int error = sem_wait(&m_sem);
-      ASSERT_TRUE(!error);
-    }
-    ~semaphore() {
-      int error = sem_destroy(&m_sem);
-      ASSERT_TRUE(!error);
-    }
+      // not copyable
+      void operator=(const semaphore& m) { }
+
+      inline void post() const {
+        int error = sem_post(&m_sem);
+        ASSERT_TRUE(!error);
+      }
+      inline void wait() const {
+        int error = sem_wait(&m_sem);
+        ASSERT_TRUE(!error);
+      }
+      ~semaphore() {
+        int error = sem_destroy(&m_sem);
+        ASSERT_TRUE(!error);
+      }
   }; // End semaphore
 #endif
-  
+
 
 #define atomic_xadd(P, V) __sync_fetch_and_add((P), (V))
 #define cmpxchg(P, O, N) __sync_val_compare_and_swap((P), (O), (N))
@@ -448,14 +449,14 @@ namespace graphlab {
     };
     mutable bool writing;
     mutable volatile rwticket l;
-  public:
+    public:
     spinrwlock() {
       memset(const_cast<rwticket*>(&l), 0, sizeof(rwticket));
     }
     inline void writelock() const {
       unsigned me = atomic_xadd(&l.u, (1<<16));
       unsigned char val = (unsigned char)(me >> 16);
-    
+
       while (val != l.s.write) asm volatile("pause\n": : :"memory");
       writing = true;
     }
@@ -465,7 +466,7 @@ namespace graphlab {
 
       t.s.write++;
       t.s.read++;
-    
+
       *(volatile unsigned short *) (&l) = t.us;
       writing = false;
       __asm("mfence");
@@ -474,7 +475,7 @@ namespace graphlab {
     inline void readlock() const {
       unsigned me = atomic_xadd(&l.u, (1<<16));
       unsigned char val = (unsigned char)(me >> 16);
-    
+
       while (val != l.s.read) asm volatile("pause\n": : :"memory");
       l.s.read++;
     }
@@ -482,7 +483,7 @@ namespace graphlab {
     inline void rdunlock() const {
       atomic_inc(&l.s.write);
     }
-  
+
     inline void unlock() const {
       if (!writing) rdunlock();
       else wrunlock();
@@ -567,57 +568,57 @@ namespace graphlab {
    * Before you use, see \ref parallel_object_intricacies.
    */
   class rwlock {
-  private:
-    mutable pthread_rwlock_t m_rwlock;
-   public:
-    rwlock() {
-      int error = pthread_rwlock_init(&m_rwlock, NULL);
-      ASSERT_TRUE(!error);
-    }
-    ~rwlock() {
-      int error = pthread_rwlock_destroy(&m_rwlock);
-      ASSERT_TRUE(!error);
-    }
- 
-    // not copyable
-    void operator=(const rwlock& m) { }
-   
-    /** 
-     * \todo: Remove!  
-     *
-     * Copy constructor which does not copy. Do not use!  Required for
-     * compatibility with some STL implementations (LLVM).  which use
-     * the copy constructor for vector resize, rather than the
-     * standard constructor.  */
-    rwlock(const rwlock &) {
-      int error = pthread_rwlock_init(&m_rwlock, NULL);
-      ASSERT_TRUE(!error);
-    }
+    private:
+      mutable pthread_rwlock_t m_rwlock;
+    public:
+      rwlock() {
+        int error = pthread_rwlock_init(&m_rwlock, NULL);
+        ASSERT_TRUE(!error);
+      }
+      ~rwlock() {
+        int error = pthread_rwlock_destroy(&m_rwlock);
+        ASSERT_TRUE(!error);
+      }
 
-    inline void readlock() const {
-      pthread_rwlock_rdlock(&m_rwlock);
-      //ASSERT_TRUE(!error);
-    }
-    inline void writelock() const {
-      pthread_rwlock_wrlock(&m_rwlock);
-      //ASSERT_TRUE(!error);
-    }
-    inline bool try_readlock() const {
-      return pthread_rwlock_tryrdlock(&m_rwlock) == 0;
-    }
-    inline bool try_writelock() const {
-      return pthread_rwlock_trywrlock(&m_rwlock) == 0;
-    }
-    inline void unlock() const {
-      pthread_rwlock_unlock(&m_rwlock);
-      //ASSERT_TRUE(!error);
-    }
-    inline void rdunlock() const {
-      unlock();
-    }
-    inline void wrunlock() const {
-      unlock();
-    }
+      // not copyable
+      void operator=(const rwlock& m) { }
+
+      /** 
+       * \todo: Remove!  
+       *
+       * Copy constructor which does not copy. Do not use!  Required for
+       * compatibility with some STL implementations (LLVM).  which use
+       * the copy constructor for vector resize, rather than the
+       * standard constructor.  */
+      rwlock(const rwlock &) {
+        int error = pthread_rwlock_init(&m_rwlock, NULL);
+        ASSERT_TRUE(!error);
+      }
+
+      inline void readlock() const {
+        pthread_rwlock_rdlock(&m_rwlock);
+        //ASSERT_TRUE(!error);
+      }
+      inline void writelock() const {
+        pthread_rwlock_wrlock(&m_rwlock);
+        //ASSERT_TRUE(!error);
+      }
+      inline bool try_readlock() const {
+        return pthread_rwlock_tryrdlock(&m_rwlock) == 0;
+      }
+      inline bool try_writelock() const {
+        return pthread_rwlock_trywrlock(&m_rwlock) == 0;
+      }
+      inline void unlock() const {
+        pthread_rwlock_unlock(&m_rwlock);
+        //ASSERT_TRUE(!error);
+      }
+      inline void rdunlock() const {
+        unlock();
+      }
+      inline void wrunlock() const {
+        unlock();
+      }
   }; // End rwlock
 
 
@@ -634,68 +635,68 @@ namespace graphlab {
    * Before you use, see \ref parallel_object_intricacies.
    */
   class cancellable_barrier {
-  private:
-    graphlab::mutex mutex;
-    graphlab::conditional conditional;
-    mutable int needed;
-    mutable int called;   
-    
-    mutable bool barrier_sense;
-    mutable bool barrier_release;
-    bool alive;
+    private:
+      graphlab::mutex mutex;
+      graphlab::conditional conditional;
+      mutable int needed;
+      mutable int called;   
 
-    // not copyconstructible
-    cancellable_barrier(const cancellable_barrier&) { }
+      mutable bool barrier_sense;
+      mutable bool barrier_release;
+      bool alive;
+
+      // not copyconstructible
+      cancellable_barrier(const cancellable_barrier&) { }
 
 
-  public:
-    /// Construct a barrier which will only fall when numthreads enter
-    cancellable_barrier(size_t numthreads) {
-      needed = numthreads;
-      called = 0;
-      barrier_sense = false;
-      barrier_release = true;
-      alive = true;
-    }
-
-    // not copyable
-    void operator=(const cancellable_barrier& m) { }
-
-    void resize_unsafe(size_t numthreads) {
-      needed = numthreads;
-    }
-    
-    /**
-     * \warning: This barrier is safely NOT reusable with this cancel
-     * definition
-     */
-    inline void cancel() {
-      alive = false;
-      conditional.broadcast();
-    }
-    /// Wait on the barrier until numthreads has called wait
-    inline void wait() const {
-      if (!alive) return;
-      mutex.lock();
-      // set waiting;
-      called++;
-      bool listening_on = barrier_sense;
-      if (called == needed) {
-        // if I have reached the required limit, wait up. Set waiting
-        // to 0 to make sure everyone wakes up
+    public:
+      /// Construct a barrier which will only fall when numthreads enter
+      cancellable_barrier(size_t numthreads) {
+        needed = numthreads;
         called = 0;
-        barrier_release = barrier_sense;
-        barrier_sense = !barrier_sense;
-        // clear all waiting
-        conditional.broadcast();
-      } else {
-        // while no one has broadcasted, sleep
-        while(barrier_release != listening_on && alive) conditional.wait(mutex);
+        barrier_sense = false;
+        barrier_release = true;
+        alive = true;
       }
-      mutex.unlock();
-    }
+
+      // not copyable
+      void operator=(const cancellable_barrier& m) { }
+
+      void resize_unsafe(size_t numthreads) {
+        needed = numthreads;
+      }
+
+      /**
+       * \warning: This barrier is safely NOT reusable with this cancel
+       * definition
+       */
+      inline void cancel() {
+        alive = false;
+        conditional.broadcast();
+      }
+      /// Wait on the barrier until numthreads has called wait
+      inline void wait() const {
+        if (!alive) return;
+        mutex.lock();
+        // set waiting;
+        called++;
+        bool listening_on = barrier_sense;
+        if (called == needed) {
+          // if I have reached the required limit, wait up. Set waiting
+          // to 0 to make sure everyone wakes up
+          called = 0;
+          barrier_release = barrier_sense;
+          barrier_sense = !barrier_sense;
+          // clear all waiting
+          conditional.broadcast();
+        } else {
+          // while no one has broadcasted, sleep
+          while(barrier_release != listening_on && alive) conditional.wait(mutex);
+        }
+        mutex.unlock();
+      }
   }; // end of conditional
-  
+
 
 
   /**
@@ -710,28 +711,28 @@ namespace graphlab {
    * Wrapper around pthread's barrier
    */
   class barrier {
-  private:
-    mutable pthread_barrier_t m_barrier;
-    // not copyconstructable
-    barrier(const barrier&) { }
-  public:
-    /// Construct a barrier which will only fall when numthreads enter
-    barrier(size_t numthreads) { 
-      pthread_barrier_init(&m_barrier, NULL, (unsigned)numthreads); }    
-    // not copyable
-    void operator=(const barrier& m) { }
-    void resize_unsafe(size_t numthreads) {
-      pthread_barrier_destroy(&m_barrier);
-      pthread_barrier_init(&m_barrier, NULL, (unsigned)numthreads);
-    }
-    ~barrier() { pthread_barrier_destroy(&m_barrier); }
-    /// Wait on the barrier until numthreads has called wait
-    inline void wait() const { pthread_barrier_wait(&m_barrier); }
+    private:
+      mutable pthread_barrier_t m_barrier;
+      // not copyconstructable
+      barrier(const barrier&) { }
+    public:
+      /// Construct a barrier which will only fall when numthreads enter
+      barrier(size_t numthreads) { 
+        pthread_barrier_init(&m_barrier, NULL, (unsigned)numthreads); }    
+      // not copyable
+      void operator=(const barrier& m) { }
+      void resize_unsafe(size_t numthreads) {
+        pthread_barrier_destroy(&m_barrier);
+        pthread_barrier_init(&m_barrier, NULL, (unsigned)numthreads);
+      }
+      ~barrier() { pthread_barrier_destroy(&m_barrier); }
+      /// Wait on the barrier until numthreads has called wait
+      inline void wait() const { pthread_barrier_wait(&m_barrier); }
   };
 
 #else   
-   /* In some systems, pthread_barrier is not available.
-   */
+  /* In some systems, pthread_barrier is not available.
+  */
   typedef cancellable_barrier barrier;
 #endif
 
@@ -769,173 +770,173 @@ namespace graphlab {
    * will be caught safely and thread cleanup will be completed properly.
    */
   class thread {
-  public:
-
-    /**
-     * This class contains the data unique to each thread. All threads
-     * are gauranteed to have an associated graphlab thread_specific
-     * data. The thread object is copyable. 
-     */  
-    class tls_data {
     public:
-      inline tls_data(size_t thread_id) : thread_id_(thread_id) { }
-      inline size_t thread_id() { return thread_id_; }
-      inline void set_thread_id(size_t t) { thread_id_ = t; }
-      any& operator[](const size_t& id) { return local_data[id]; }
-      bool contains(const size_t& id) const {
-        return local_data.find(id) != local_data.end();
+
+      /**
+       * This class contains the data unique to each thread. All threads
+       * are gauranteed to have an associated graphlab thread_specific
+       * data. The thread object is copyable. 
+       */  
+      class tls_data {
+        public:
+          inline tls_data(size_t thread_id) : thread_id_(thread_id) { }
+          inline size_t thread_id() { return thread_id_; }
+          inline void set_thread_id(size_t t) { thread_id_ = t; }
+          any& operator[](const size_t& id) { return local_data[id]; }
+          bool contains(const size_t& id) const {
+            return local_data.find(id) != local_data.end();
+          }
+          size_t erase(const size_t& id) {
+            return local_data.erase(id);
+          }
+        private:
+          size_t thread_id_;
+          boost::unordered_map<size_t, any> local_data;
+      }; // end of thread specific data
+
+
+
+      /// Static helper routines
+      // ===============================================================
+
+      /**
+       * Get the thread specific data associated with this thread
+       */
+      static tls_data& get_tls_data();
+
+      /** Get the id of the calling thread.  This will typically be the
+        index in the thread group. Between 0 to ncpus. */
+      static inline size_t thread_id() { return get_tls_data().thread_id(); }
+
+      /** Set the id of the calling thread.  This will typically be the
+        index in the thread group. Between 0 to ncpus. */
+      static inline void set_thread_id(size_t t) { get_tls_data().set_thread_id(t); }
+
+      /**
+       * Get a reference to an any object
+       */
+      static inline any& get_local(const size_t& id) {
+        return get_tls_data()[id];
       }
-      size_t erase(const size_t& id) {
-        return local_data.erase(id);
+
+      /**
+       * Check to see if there is an entry in the local map
+       */
+      static inline bool contains(const size_t& id) {
+        return get_tls_data().contains(id);
+      }
+
+      /**
+       * Removes the entry from the local map.
+       * @return number of elements erased.
+       */
+      static inline size_t erase(const size_t& id){
+        return get_tls_data().erase(id);
+      }
+
+      /**
+       * This static method joins the invoking thread with the other
+       * thread object.  This thread will not return from the join
+       * routine until the other thread complets it run.
+       */
+      static void join(thread& other);
+
+      // Called just before thread exits. Can be used
+      // to do special cleanup... (need for Java JNI)
+      static void thread_destroy_callback();
+      static void set_thread_destroy_callback(void (*callback)());
+
+
+      /**
+       * Return the number processing units (individual cores) on this
+       * system
+       */
+      static size_t cpu_count();
+
+
+    private:
+
+      struct invoke_args{
+        size_t m_thread_id;
+        boost::function<void(void)> spawn_routine;   
+        invoke_args(size_t m_thread_id, const boost::function<void(void)> &spawn_routine)
+          : m_thread_id(m_thread_id), spawn_routine(spawn_routine) { };
+      };
+
+      //! Little helper function used to launch threads
+      static void* invoke(void *_args);   
+
+    public:
+
+      /**
+       * Creates a thread with a user-defined associated thread ID
+       */
+      inline thread(size_t thread_id = 0) : 
+        m_stack_size(0), 
+        m_p_thread(0),
+        m_thread_id(thread_id),
+        thread_started(false){
+          // Calculate the stack size in in bytes;
+          const int BYTES_PER_MB = 1048576; 
+          const int DEFAULT_SIZE_IN_MB = 8;
+          m_stack_size = DEFAULT_SIZE_IN_MB * BYTES_PER_MB;
+        }
+
+      /**
+       * execute this function to spawn a new thread running spawn_function
+       * routine 
+       */
+      void launch(const boost::function<void (void)> &spawn_routine);
+
+      /**
+       * Same as launch() except that you can specify a CPU on which to
+       * run the thread.  This only currently supported in Linux and if
+       * invoked on a non Linux based system this will be equivalent to
+       * start().
+       */
+      void launch(const boost::function<void (void)> &spawn_routine, size_t cpu_id);
+
+
+      /**
+       * Join the calling thread with this thread.
+       * const char* exceptions
+       * thrown by the thread is forwarded to the join() function.
+       */
+      inline void join() {
+        if(this == NULL) {
+          std::cout << "Failure on join()" << std::endl;
+          exit(EXIT_FAILURE);
+        }
+        join(*this);
+      }
+
+      /// Returns true if the thread is still running
+      inline bool active() const {
+        return thread_started;
+      }
+
+      inline ~thread() {  }
+
+      /// Returns the pthread thread id
+      inline pthread_t pthreadid() {
+        return m_p_thread;
       }
     private:
-      size_t thread_id_;
-      boost::unordered_map<size_t, any> local_data;
-    }; // end of thread specific data
 
 
+      //! The size of the internal stack for this thread
+      size_t m_stack_size;
 
-    /// Static helper routines
-    // ===============================================================
+      //! The internal pthread object
+      pthread_t m_p_thread;
 
-    /**
-     * Get the thread specific data associated with this thread
-     */
-    static tls_data& get_tls_data();
-      
-    /** Get the id of the calling thread.  This will typically be the
-        index in the thread group. Between 0 to ncpus. */
-    static inline size_t thread_id() { return get_tls_data().thread_id(); }
-    
-    /** Set the id of the calling thread.  This will typically be the
-        index in the thread group. Between 0 to ncpus. */
-    static inline void set_thread_id(size_t t) { get_tls_data().set_thread_id(t); }
-
-    /**
-     * Get a reference to an any object
-     */
-    static inline any& get_local(const size_t& id) {
-      return get_tls_data()[id];
-    }
-
-    /**
-     * Check to see if there is an entry in the local map
-     */
-    static inline bool contains(const size_t& id) {
-      return get_tls_data().contains(id);
-    }
-    
-    /**
-     * Removes the entry from the local map.
-     * @return number of elements erased.
-     */
-    static inline size_t erase(const size_t& id){
-      return get_tls_data().erase(id);
-    }
-    
-    /**
-     * This static method joins the invoking thread with the other
-     * thread object.  This thread will not return from the join
-     * routine until the other thread complets it run.
-     */
-    static void join(thread& other);
-    
-    // Called just before thread exits. Can be used
-    // to do special cleanup... (need for Java JNI)
-    static void thread_destroy_callback();
-    static void set_thread_destroy_callback(void (*callback)());
-
-      
-    /**
-     * Return the number processing units (individual cores) on this
-     * system
-     */
-    static size_t cpu_count();
-
-
-  private:
-    
-    struct invoke_args{
+      //! the threads id
       size_t m_thread_id;
-      boost::function<void(void)> spawn_routine;   
-      invoke_args(size_t m_thread_id, const boost::function<void(void)> &spawn_routine)
-          : m_thread_id(m_thread_id), spawn_routine(spawn_routine) { };
-    };
-    
-    //! Little helper function used to launch threads
-    static void* invoke(void *_args);   
-  
-  public:
-    
-    /**
-     * Creates a thread with a user-defined associated thread ID
-     */
-    inline thread(size_t thread_id = 0) : 
-      m_stack_size(0), 
-      m_p_thread(0),
-      m_thread_id(thread_id),
-      thread_started(false){
-      // Calculate the stack size in in bytes;
-      const int BYTES_PER_MB = 1048576; 
-      const int DEFAULT_SIZE_IN_MB = 8;
-      m_stack_size = DEFAULT_SIZE_IN_MB * BYTES_PER_MB;
-    }
 
-    /**
-     * execute this function to spawn a new thread running spawn_function
-     * routine 
-     */
-    void launch(const boost::function<void (void)> &spawn_routine);
-
-    /**
-     * Same as launch() except that you can specify a CPU on which to
-     * run the thread.  This only currently supported in Linux and if
-     * invoked on a non Linux based system this will be equivalent to
-     * start().
-     */
-     void launch(const boost::function<void (void)> &spawn_routine, size_t cpu_id);
-
-
-    /**
-     * Join the calling thread with this thread.
-     * const char* exceptions
-     * thrown by the thread is forwarded to the join() function.
-     */
-    inline void join() {
-      if(this == NULL) {
-        std::cout << "Failure on join()" << std::endl;
-        exit(EXIT_FAILURE);
-      }
-      join(*this);
-    }
-
-    /// Returns true if the thread is still running
-    inline bool active() const {
-      return thread_started;
-    }
-    
-    inline ~thread() {  }
-
-    /// Returns the pthread thread id
-    inline pthread_t pthreadid() {
-      return m_p_thread;
-    }
-  private:
-    
-    
-    //! The size of the internal stack for this thread
-    size_t m_stack_size;
-    
-    //! The internal pthread object
-    pthread_t m_p_thread;
-    
-    //! the threads id
-    size_t m_thread_id;
-    
-    bool thread_started;
+      bool thread_started;
   }; // End of class thread
 
-  
+
 
 
 
@@ -953,52 +954,52 @@ namespace graphlab {
    * test if running_threads() is > 0, and retry the join().
    */
   class thread_group {
-   private:
-    size_t m_thread_counter;
-    size_t threads_running;
-    mutex mut;
-    conditional cond;
-    std::queue<std::pair<pthread_t, const char*> > joinqueue;
-    // not implemented
-    thread_group& operator=(const thread_group &thrgrp);
-    thread_group(const thread_group&);
-    static void invoke(boost::function<void (void)> spawn_function, thread_group *group);
-   public:
-    /** 
-     * Initializes a thread group. 
-     */
-    thread_group() : m_thread_counter(0), threads_running(0) { }
+    private:
+      size_t m_thread_counter;
+      size_t threads_running;
+      mutex mut;
+      conditional cond;
+      std::queue<std::pair<pthread_t, const char*> > joinqueue;
+      // not implemented
+      thread_group& operator=(const thread_group &thrgrp);
+      thread_group(const thread_group&);
+      static void invoke(boost::function<void (void)> spawn_function, thread_group *group);
+    public:
+      /** 
+       * Initializes a thread group. 
+       */
+      thread_group() : m_thread_counter(0), threads_running(0) { }
 
-    /** 
-     * Launch a single thread which calls spawn_function No CPU affinity is
-     * set so which core it runs on is up to the OS Scheduler
-     */
-    void launch(const boost::function<void (void)> &spawn_function);
+      /** 
+       * Launch a single thread which calls spawn_function No CPU affinity is
+       * set so which core it runs on is up to the OS Scheduler
+       */
+      void launch(const boost::function<void (void)> &spawn_function);
 
-    /**
-     * Launch a single thread which calls spawn_function Also sets CPU
-     *  Affinity
-     */
-    void launch(const boost::function<void (void)> &spawn_function, size_t cpu_id);
+      /**
+       * Launch a single thread which calls spawn_function Also sets CPU
+       *  Affinity
+       */
+      void launch(const boost::function<void (void)> &spawn_function, size_t cpu_id);
 
-    /** Waits for all threads to complete execution. const char* exceptions
-    thrown by threads are forwarded to the join() function.
-    */
-    void join();
-    
-    /// Returns the number of running threads.
-    inline size_t running_threads() {
-      return threads_running;
-    }
-    //! Destructor. Waits for all threads to complete execution
-    inline ~thread_group(){ join(); }
+      /** Waits for all threads to complete execution. const char* exceptions
+        thrown by threads are forwarded to the join() function.
+        */
+      void join();
+
+      /// Returns the number of running threads.
+      inline size_t running_threads() {
+        return threads_running;
+      }
+      //! Destructor. Waits for all threads to complete execution
+      inline ~thread_group(){ join(); }
 
   }; // End of thread group
 
 
   /// Runs f in a new thread. convenience function for creating a new thread quickly.
   inline thread launch_in_new_thread(const boost::function<void (void)> &f, 
-                               size_t cpuid = size_t(-1)) {
+      size_t cpuid = size_t(-1)) {
     thread thr;
     if (cpuid != size_t(-1)) thr.launch(f, cpuid);
     else thr.launch(f);
