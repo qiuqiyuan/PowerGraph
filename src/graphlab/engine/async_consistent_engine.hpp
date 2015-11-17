@@ -329,7 +329,7 @@ namespace graphlab {
     distributed_chandy_misra<graph_type>* cmlocks;
 
     /// Per vertex data locks
-    std::vector<simple_spinlock> vertexlocks;
+    std::vector<rtm_wrapped_simple_spinlock> vertexlocks;
 
     /// Total update function completion time
     std::vector<double> total_completion_time;

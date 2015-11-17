@@ -163,6 +163,68 @@ namespace graphlab {
       }
   };
 
+  //qqiu: rtm wrapped lock
+  class rtm_wrapped_simple_spinlock {
+    private:
+      // mutable not actually needed
+      mutable volatile char spinner;
+    public:
+      /// constructs a spinlock
+      rtm_wrapped_simple_spinlock () {
+        spinner = 0;
+      }
+
+      //RTM lock
+      inline void lock(){
+        if(_xbegin() == _XBEGIN_STARTED){
+          if(try_lock()) {
+            return;
+          }else {
+            //someone is in the fall-back
+            _xabort(0xff);
+          }
+        }
+        //fall back with only one try
+        orig_lock();
+      }
+
+      //RTM unlock
+      inline void unlock(){
+        if(try_lock()) {
+          _xend(); //commit
+        }else {
+          orig_unlock();
+        }
+      }
+
+      /** Copy constructor which does not copy. Do not use!
+        Required for compatibility with some STL implementations (LLVM).
+        which use the copy constructor for vector resize, 
+        rather than the standard constructor.    */
+      rtm_wrapped_simple_spinlock(const rtm_wrapped_simple_spinlock&) {
+        spinner = 0;
+      }
+
+      // not copyable
+      void operator=(const rtm_wrapped_simple_spinlock& m) { }
+
+      /// Acquires a lock on the spinlock
+      inline void orig_lock() const { 
+        while(spinner == 1 || __sync_lock_test_and_set(&spinner, 1));
+      }
+      /// Releases a lock on the spinlock
+      inline void orig_unlock() const {
+        __sync_synchronize();
+        spinner = 0;
+      }
+      /// Non-blocking attempt to acquire a lock on the spinlock
+      inline bool try_lock() const {
+        return (__sync_lock_test_and_set(&spinner, 1) == 0);
+      }
+      ~rtm_wrapped_simple_spinlock(){
+        ASSERT_TRUE(spinner == 0);
+      }
+  };
 
 
   /**
